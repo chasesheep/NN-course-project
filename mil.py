@@ -8,10 +8,11 @@ mil_config = {
     # 'split_channels': None,
     # 'learning_rate': None,
     # 'kernel_size': None,
-    # 'strides': None
-    # 'fc_bt': None
-    # 'fc_layer_size': None
-    # 'two_head': None
+    # 'strides': None,
+    # 'fc_bt': None,
+    # 'fc_layer_size': None,
+    # 'two_head': None,
+    # 'decay': None
 }
 
 mil_constants = {
@@ -49,6 +50,7 @@ def init_network_config(config):
     mil_config['fc_bt'] = config['fc_bt']
     mil_config['fc_layer_size'] = config['fc_layer_size']
     mil_config['two_head'] = config['two_head']
+    mil_config['decay'] = config['decay']
 
 
 def init_network(graph, training):
@@ -60,7 +62,7 @@ def init_network(graph, training):
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
         mil_variables['not-built'] = False
-    
+
     stateA = mil_variables['stateA']
     stateB = mil_variables['stateB']
     imgA = mil_variables['imgA']
@@ -145,4 +147,48 @@ def init_weights():
 
 
 def forward(img_input, state_input, weights, meta_testing=False, is_training=True):
-    pass
+
+    # basic config
+    gif_height = mil_constants['gif_height']
+    gif_width = mil_constants['gif_width']
+    gif_channels = 3
+    decay = mil_config['decay']
+    strides = mil_config['strides']
+    conv_layers = mil_constants['conv_layers']
+
+    # conv layers
+    conv_layer = img_input
+
+    for i in range(conv_layers):
+        conv_layer = norm_activate(conv2d(conv_layer,
+                                          weights['wc%d' % (i + 1)],
+                                          weights['bc%d' % (i + 1)],
+                                          strides[i]),
+                                   'layer_norm',
+                                   id=i)
+
+    fc_layer = tf.reshape(conv_layer, [-1, mil_constants['conv_out_size']])
+
+    # fc bt
+    if mil_config['fc_bt']:
+        context = tf.gather(tf.zeros_like(tf.reshape(img_input,
+                                                     [-1, gif_height * gif_width * gif_channels])),
+                            axis=1,
+                            indices=list(range(mil_constants['bt_dim'])))
+        context += weights['context']
+        fc_layer = tf.concat(axis=1, values=[fc_layer, context])
+
+    # fc config
+    fc_layers = mil_constants['fc_layers']
+    fc_layer = tf.concat(axis=1, values=[fc_layer, state_input])
+
+    # fc layers
+    for i in range(fc_layers):
+        if i == fc_layers - 1 and mil_config['two_head'] and not meta_testing:
+            fc_layer = tf.matmul(fc_layer, weights['w_%d_two_heads' % i]) + weights['b_%d_two_heads' % i]
+        else:
+            fc_layer = tf.matmul(fc_layer, weights['w_%d' % i]) + weights['b_%d' % i]
+        if i != fc_layers - 1:
+            fc_layer = tf.nn.relu(fc_layer)
+
+    return fc_layer

@@ -15,6 +15,7 @@ config = {
     'iterations' : 300,
     'val_interval' : 10,
     'maml_tasks_per_batch': 5,
+    'decay': 0.9,
     'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
     'fc_bt': True
 }
