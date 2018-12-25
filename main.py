@@ -10,9 +10,13 @@ config = {
     'validate_samples' : 20,
     'split_channels' : 30,
     'kernel_size' : 3,
+    'fc_layer_size': 200,
+    'two_head': False,
     'iterations' : 300,
     'val_interval' : 10,
     'maml_tasks_per_batch': 5,
+    'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
+    'fc_bt': True
 }
 
 constants = {
@@ -20,7 +24,7 @@ constants = {
     'conv_layers' : 3,
     'action_dim' : 2
     #'gif_width': 80,
-    #'gif_height': 60
+    #'gif_height': 64
 }
 
 graph = tf.Graph()
