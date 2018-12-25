@@ -42,6 +42,8 @@ def init_network(graph, training):
     stateB = mil_variables['stateB']
     imgA = mil_variables['imgA']
     imgB = mil_variables['imgB']
+    actionA = mil_variables['actionA']
+    actionB = mil_variables['actionB']
 
 def construct_network(training = True):
     reuse = not training
@@ -58,5 +60,5 @@ def init_weights():
     conv_layers = 3
     fc_layers = 3
 
-    #for i in range(conv_layers):
+    for i in range(conv_layers):
         
