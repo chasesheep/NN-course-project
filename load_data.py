@@ -18,6 +18,8 @@ load_data_config = {
     'val_size' : 0,          #validation_samples
     'iterations' : 0,
     'val_interval' : 0,
+    'tasks_per_batch' : 0,
+    'K-shots' : 0,
 
     #normalization factors
     'state_scale' : None,
@@ -37,7 +39,9 @@ load_data_variables = {
     'val_index': None,
     'val_data': None,
     'train_gif_dirs' : None,
-    'val_gif_dirs' : None
+    'val_gif_dirs' : None,
+    'all_train_filenames' : None,
+    'all_val_filenames' : None,
 }
 #selected_data = None
 #selected_index = None
@@ -48,6 +52,8 @@ def init_load_data_config(config):
     load_data_config['val_size'] = config['validate_samples']
     load_data_config['iterations'] = config['iterations']
     load_data_config['val_interval'] = config['val_interval']
+    load_data_config['tasks_per_batch'] = config['maml_tasks_per_batch']
+    load_data_config['K-shots'] = config['K-shots']
 
 def load_states_and_actions():
     
@@ -107,8 +113,36 @@ def unpickle(name):
 def gen_batch_filenames():
     iterations = load_data_config['iterations']
     val_interval = load_data_config['val_interval']
-    #for i in range(iterations):
-        
+    batch_size = load_data_config['tasks_per_batch']
+    train_size = load_data_config['train_size']
+    val_size = load_data_config['val_size']
+    shots = load_data_config['K-shots'] * 2
+    train_gif_dirs = load_data_variables['train_gif_dirs']
+    val_gif_dirs = load_data_variables['val_gif_dirs']
+
+    all_train_filenames = []
+    all_val_filenames = []
+    for i in range(iterations):
+        rand_choice = np.random.choice(train_size, batch_size, replace = False)
+        folders = [train_gif_dirs[j] for j in rand_choice]
+        for folder in folders:
+            gifs = os.listdir(folder)
+            gif_choices = np.random.choice(gifs, shots, replace = False)
+            gif_name_choices = [os.path.join(folder, item) for item in gif_choices]
+            all_train_filenames.extend(gif_name_choices)
+        if (i != 0 and i % val_interval == 0):
+            rand_choice = np.random.choice(val_size, batch_size, replace = False)
+            folders = [val_gif_dirs[j] for j in rand_choice]
+            for folder in folders:
+                gifs = os.listdir(folder)
+                gif_choices = np.random.choice(gifs, shots, replace = False)
+                gif_name_choices = [os.path.join(folder, item) for item in gif_choices]
+                all_val_filenames.extend(gif_name_choices)
+
+    print(len(all_train_filenames))
+    print(len(all_val_filenames))
+    load_data_variables['all_train_filenames'] = all_train_filenames
+    load_data_variables['all_val_filenames'] = all_val_filenames
         
     
 def normalize_states(data):
@@ -135,8 +169,6 @@ def normalize_states(data):
         data[i]['demoX'] = np.reshape(data[i]['demoX'],(-1, load_data_constants['frames_in_gif'], l))
 
     print('Done state-vector normalization')
-    #To be modified...
-    pass
 
 def generate_batch():
     pass
