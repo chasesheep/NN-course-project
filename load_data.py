@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import os
+import tensorflow as tf
 
 load_data_config = {
     'reach_path' : 'data/sim_vision_reach',
@@ -28,7 +29,10 @@ load_data_config = {
 
 load_data_constants = {
     'gif_dir_prefix' : 'color_',
-    'frames_in_gif' : 50
+    'frames_in_gif' : 50,
+    'img_height' : 64,
+    'img_width' : 80,
+    'color_channels' : 3
 }
 
 load_data_variables = {
@@ -42,6 +46,8 @@ load_data_variables = {
     'val_gif_dirs' : None,
     'all_train_filenames' : None,
     'all_val_filenames' : None,
+    'train_itr' : None,
+    'val_itr' : None
 }
 #selected_data = None
 #selected_index = None
@@ -111,6 +117,7 @@ def unpickle(name):
         return None
 
 def gen_batch_filenames():
+    print('Generating batch filenames...')
     iterations = load_data_config['iterations']
     val_interval = load_data_config['val_interval']
     batch_size = load_data_config['tasks_per_batch']
@@ -139,10 +146,13 @@ def gen_batch_filenames():
                 gif_name_choices = [os.path.join(folder, item) for item in gif_choices]
                 all_val_filenames.extend(gif_name_choices)
 
-    print(len(all_train_filenames))
-    print(len(all_val_filenames))
+    #print(len(all_train_filenames))
+    #print(len(all_val_filenames))
     load_data_variables['all_train_filenames'] = all_train_filenames
     load_data_variables['all_val_filenames'] = all_val_filenames
+
+    load_data_variables['train_itr'] = 0
+    load_data_variables['val_itr'] = 0
         
     
 def normalize_states(data):
@@ -170,8 +180,45 @@ def normalize_states(data):
 
     print('Done state-vector normalization')
 
-def generate_batch():
-    pass
+def generate_training_batch():
+    tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
+    itr = load_data_variables['train_itr']
+    filenames = load_data_variables['all_train_filenames']
+    img_list = [read_gif(filenames[i]) for i in range(itr, itr + tot)]
+    itr += tot
+    img_tensors = tf.stack(img_list)
+    #print(img_tensors)
+    #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
+    #tf.Print(img_tensors[0][0][0][0], [img_tensors[0][0][0][0]])
+
+    #Well, I guess it's right here...
+    #To be further checked
+    return img_tensors
+
+def generate_validation_batch():
+    tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
+    itr = load_data_variables['val_itr']
+    filenames = load_data_variables['val_train_filenames']
+    img_list = [read_gif(filenames[i]) for i in range(itr, itr + tot)]
+    itr += tot
+    img_tensors = tf.stack(img_list)
+    #print(img_tensors)
+    #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
+    #tf.Print(img_tensors[0][0][0][0], [img_tensors[0][0][0][0]])
+
+    #Well, I guess it's right here...
+    #To be further checked
+    return img_tensors
+
+def read_gif(filename):
+    img = tf.image.decode_gif(filename)
+    img.set_shape((load_data_constants['frames_in_gif'], \
+                   load_data_constants['img_height'], \
+                   load_data_constants['img_width'], \
+                   load_data_constants['color_channels']))
+    img = tf.cast(img, tf.float32)
+    img /= 255.0
+    return img
 
 def data_preload(config):
     init_load_data_config(config)
@@ -179,3 +226,4 @@ def data_preload(config):
     split_selected_data()
     load_gif_dirs()
     gen_batch_filenames()
+    generate_training_batch()

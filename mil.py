@@ -43,7 +43,7 @@ def init_network(graph, training):
     imgA = mil_variables['imgA']
     imgB = mil_variables['imgB']
 
-def construct_network(training):
+def construct_network(training = True):
     reuse = not training
     with tf.variable_scope('model', reuse=reuse) as training_scope:
         if training:
@@ -52,7 +52,7 @@ def construct_network(training):
             training_scope.reuse_variables()
         weights = mil_variables['weights']
         lr = mil_config['learning_rate']
-
+        
 
 def init_weights():
     conv_layers = 3
