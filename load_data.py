@@ -315,6 +315,3 @@ def data_preload(config):
     split_selected_data()
     load_gif_dirs()
     gen_batch_filenames()
-    generate_training_batch(0)
-
-    generate_validation_batch(10)

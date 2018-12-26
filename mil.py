@@ -44,6 +44,7 @@ def init_network_config(config):
     mil_config['maml_tasks_per_batch'] = config['maml_tasks_per_batch']
     mil_config['split_channels'] = config['split_channels']
     mil_config['learning_rate'] = config['learning_rate']
+    mil_config['meta_learning_rate'] = config['meta_learning_rate']
     mil_config['kernel_size'] = config['kernel_size']
     mil_config['strides'] = config['strides']
     mil_config['fc_bt'] = config['fc_bt']
@@ -55,6 +56,26 @@ def init_network_config(config):
 
 
 def init_network(graph, training):
+    with graph.as_default():
+        result = construct_network(training)
+        outputAs, outputBs, lossAs, lossBs = result
+
+        batch_size = mil_config['maml_tasks_per_batch']
+        lossA = tf.reduce_sum(lossAs) / tf.to_float(batch_size)
+        lossB = tf.reduce_sum(lossBs) / tf.to_float(batch_size)
+
+        lr = mil_config['meta_learning_rate']
+
+        if training:
+            mil_variables['train_lossA'] = lossA
+            mil_variables['train_lossB'] = lossB
+            train_op = tf.train.AdamOptimizer(lr).minimize(lossB)
+        else:
+            mil_variables['val_lossA'] = lossA
+            mil_variables['val_lossB'] = lossB
+
+def construct_network(training = True):
+    
     if (training):
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
@@ -62,11 +83,7 @@ def init_network(graph, training):
         mil_variables['imgB'] = tf.placeholder(tf.float32, name='imgB')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
-
-    result = construct_network(training)   
     
-
-def construct_network(training = True):
     stateA = mil_variables['stateA']
     stateB = mil_variables['stateB']
     imgA = mil_variables['imgA']

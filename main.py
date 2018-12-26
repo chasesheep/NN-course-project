@@ -5,6 +5,7 @@ import tensorflow as tf
 
 config = {
     'learning_rate' : 0.001,
+    'meta_learning_rate' : 0.001,
     'K-shots': 1,
     'train_samples' : 100,
     'validate_samples' : 20,
