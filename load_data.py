@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import os
 import tensorflow as tf
+from natsort import natsorted
 
 load_data_config = {
     'reach_path' : 'data/sim_vision_reach',
@@ -67,7 +68,7 @@ def load_states_and_actions():
     size = load_data_config['size']
     print("Randomly selecting " + str(size) + " demos...")
     
-    files = [os.path.join(gif_dir, f) for f in os.listdir(gif_dir) if f.endswith('pkl')]
+    files = natsorted([os.path.join(gif_dir, f) for f in os.listdir(gif_dir) if f.endswith('pkl')])
     
     load_data_config['total_demos'] = len(files)
     demo_index = np.array(range(load_data_config['total_demos']))
@@ -126,30 +127,55 @@ def gen_batch_filenames():
     shots = load_data_config['K-shots'] * 2
     train_gif_dirs = load_data_variables['train_gif_dirs']
     val_gif_dirs = load_data_variables['val_gif_dirs']
-    
+
     all_train_filenames = []
     all_val_filenames = []
+
+    all_train_index = []
+    all_val_index = []
+
+    all_train_gif_index = []
+    all_val_gif_index = []
+    
     for i in range(iterations):
         rand_choice = np.random.choice(train_size, batch_size, replace = False)
+        all_train_index.append(rand_choice)
         folders = [train_gif_dirs[j] for j in rand_choice]
+
+        gif_index = []
         for folder in folders:
-            gifs = os.listdir(folder)
-            gif_choices = np.random.choice(gifs, shots, replace = False)
-            gif_name_choices = [os.path.join(folder, item) for item in gif_choices]
+            gifs = natsorted(os.listdir(folder))
+            gif_choices = np.random.choice(range(len(gifs)), shots, replace = False)
+            gif_name_choices = [os.path.join(folder, gifs[item]) for item in gif_choices]
             all_train_filenames.extend(gif_name_choices)
+            gif_index.append(gif_choices)
+
+        all_train_gif_index.append(gif_index)
         if (i != 0 and i % val_interval == 0):
             rand_choice = np.random.choice(val_size, batch_size, replace = False)
+            all_val_index.append(rand_choice)
             folders = [val_gif_dirs[j] for j in rand_choice]
-            for folder in folders:
-                gifs = os.listdir(folder)
-                gif_choices = np.random.choice(gifs, shots, replace = False)
-                gif_name_choices = [os.path.join(folder, item) for item in gif_choices]
-                all_val_filenames.extend(gif_name_choices)
 
-    #print(len(all_train_filenames))
+            gif_index = []
+            for folder in folders:
+                gifs = natsorted(os.listdir(folder))
+                gif_choices = np.random.choice(range(len(gifs)), shots, replace = False)
+                gif_name_choices = [os.path.join(folder, gifs[item]) for item in gif_choices]
+                all_val_filenames.extend(gif_name_choices)
+                gif_index.append(gif_choices)
+
+            all_val_gif_index.append(gif_index)
+
+    #print(all_train_filenames[0])
     #print(len(all_val_filenames))
     load_data_variables['all_train_filenames'] = all_train_filenames
     load_data_variables['all_val_filenames'] = all_val_filenames
+
+    load_data_variables['all_train_index'] = all_train_index
+    load_data_variables['all_val_index'] = all_val_index
+
+    load_data_variables['all_train_gif_index'] = all_train_gif_index
+    load_data_variables['all_val_gif_index'] = all_val_gif_index
 
     load_data_variables['train_itr'] = 0
     load_data_variables['val_itr'] = 0
@@ -180,7 +206,7 @@ def normalize_states(data):
 
     print('Done state-vector normalization')
 
-def generate_training_batch():
+def generate_training_batch(it):
     tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
     itr = load_data_variables['train_itr']
     filenames = load_data_variables['all_train_filenames']
@@ -202,15 +228,35 @@ def generate_training_batch():
 
     #Well, I guess it's right here...
     #To be further checked
-    print(img_tensorsA)
+    #print(img_tensorsA)
 
+    all_train_index = load_data_variables['all_train_index']
+    all_train_gif_index = load_data_variables['all_train_gif_index']
+
+    index = all_train_index[it]
+    gif_index = all_train_gif_index[it]
+
+    size1 = len(index)
+    size2 = len(gif_index[0])
+
+    data = load_data_variables['train_data']
+
+    stateA = [data[index[int(i/size2)]]['demoX'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 == 0)]
+    stateB = [data[index[int(i/size2)]]['demoX'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 != 0)]
     
-    return img_tensorsA, img_tensorsB
+    actionA = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 == 0)]
+    actionB = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 != 0)]
+    return img_tensorsA, img_tensorsB, stateA, stateB, actionA, actionB
 
-def generate_validation_batch():
+def generate_validation_batch(it):
+    it = int(it / load_data_config['val_interval'])-1
     tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
     itr = load_data_variables['val_itr']
-    filenames = load_data_variables['val_train_filenames']
+    filenames = load_data_variables['all_val_filenames']
     img_listA = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 == 0)]
     img_listB = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 != 0)]
     load_data_variables['val_itr'] = itr + tot
@@ -229,8 +275,29 @@ def generate_validation_batch():
 
     #Well, I guess it's right here...
     #To be further checked
-    print(img_tensorsA)
-    return img_tensorsA, img_tensorsB
+    #print(img_tensorsA)
+
+    all_val_index = load_data_variables['all_val_index']
+    all_val_gif_index = load_data_variables['all_val_gif_index']
+
+    index = all_val_index[it]
+    gif_index = all_val_gif_index[it]
+
+    size1 = len(index)
+    size2 = len(gif_index[0])
+    
+    data = load_data_variables['val_data']
+
+    stateA = [data[index[int(i/size2)]]['demoX'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 == 0)]
+    stateB = [data[index[int(i/size2)]]['demoX'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 != 0)]
+
+    actionA = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 == 0)]
+    actionB = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
+              for i in range(size1*size2) if (i % 2 != 0)]
+    return img_tensorsA, img_tensorsB, stateA, stateB, actionA, actionB
 
 def read_gif(filename):
     img = tf.image.decode_gif(filename)
@@ -248,4 +315,6 @@ def data_preload(config):
     split_selected_data()
     load_gif_dirs()
     gen_batch_filenames()
-    generate_training_batch()
+    generate_training_batch(0)
+
+    generate_validation_batch(10)
