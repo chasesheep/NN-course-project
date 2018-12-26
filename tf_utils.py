@@ -7,10 +7,10 @@ def init_conv_weights_xavier(shape, name=None):
     return tf.get_variable(name, list(shape), initializer=conv_initializer, dtype=tf.float32)
 
 
-def init_weights(shape, name=None):
+def init_weight(shape, name=None):
     shape = tuple(shape)
-    weights = np.random.normal(scale=0.01, size=shape).astype('f')
-    return tf.get_variable(name, list(shape), initializer=tf.constant_initializer(weights), dtype=tf.float32)
+    weight = np.random.normal(scale=0.01, size=shape).astype('f')
+    return tf.get_variable(name, list(shape), initializer=tf.constant_initializer(weight), dtype=tf.float32)
 
 
 def init_bias(shape, name=None):

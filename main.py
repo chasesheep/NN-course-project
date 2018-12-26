@@ -1,5 +1,5 @@
 from load_data import data_preload
-from mil import init_network_config, init_network
+from mil import *
 
 import tensorflow as tf
 
@@ -39,4 +39,3 @@ data_preload(config)
 init_network_config(config)
 init_network(graph, True)
 init_network(graph, False)
-

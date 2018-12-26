@@ -103,10 +103,10 @@ def init_weights():
     # downsample factor
     downsample_factor = 1
     for stride in strides:
-        downsample_factor *= strides[1]
+        downsample_factor *= stride[1]
     mil_constants['conv_out_size'] = int(np.ceil(gif_width / downsample_factor)) \
                                      * int(np.ceil(gif_height / downsample_factor)) \
-                                     * kernel_size[-1]
+                                     * split_channels[-1]
 
     # conv weights
     fan_in = gif_channels
@@ -135,15 +135,17 @@ def init_weights():
 
     # fc weights
     for i in range(fc_layers):
-        weights['w_%d' % i] = init_weights([in_shape, fc_layer_size[i]], name='w_%d' % i)
+        weights['w_%d' % i] = init_weight([in_shape, fc_layer_size[i]], name='w_%d' % i)
         weights['b_%d' % i] = init_bias([fc_layer_size[i]], name='b_%d' % i)
 
         # two head
         if i == fc_layers - 1 and mil_config['two_head']:
-            weights['w_%d_two_heads' % i] = init_weights([in_shape, fc_layer_size[i]], name='w_%d_two_heads' % i)
+            weights['w_%d_two_heads' % i] = init_weight([in_shape, fc_layer_size[i]], name='w_%d_two_heads' % i)
             weights['b_%d_two_heads' % i] = init_bias([fc_layer_size[i]], name='b_%d_two_heads' % i)
 
         in_shape = fc_layer_size[i]
+
+    return weights
 
 
 def forward(img_input, state_input, weights, meta_testing=False, is_training=True):
