@@ -36,29 +36,38 @@ def init_network(graph, training):
         mil_variables['imgB'] = tf.placeholder(tf.float32, name='imgB')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
-        mil_variables['not-built'] = False
+        mil_variables['not-built'] = False    
     
+
+def construct_network(training = True):
     stateA = mil_variables['stateA']
     stateB = mil_variables['stateB']
     imgA = mil_variables['imgA']
     imgB = mil_variables['imgB']
     actionA = mil_variables['actionA']
     actionB = mil_variables['actionB']
-
-def construct_network(training = True):
+    
     reuse = not training
     with tf.variable_scope('model', reuse=reuse) as training_scope:
         if training:
             mil_variables['weights'] = init_weights()
-        else:
-            training_scope.reuse_variables()
         weights = mil_variables['weights']
         lr = mil_config['learning_rate']
-        
+
+        def maml(inputs):
+            stateA, stateB, imgA, imgB, actionA, actionB = inputs
+            pass
+
+        result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, actionA, actionB))
+        #Use map_fn for parallel computation
+        #Otherwise the computation is serial
+
+        return result
+    
 
 def init_weights():
     conv_layers = 3
     fc_layers = 3
 
-    for i in range(conv_layers):
+    #for i in range(conv_layers):
         

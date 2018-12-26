@@ -185,7 +185,7 @@ def generate_training_batch():
     itr = load_data_variables['train_itr']
     filenames = load_data_variables['all_train_filenames']
     img_list = [read_gif(filenames[i]) for i in range(itr, itr + tot)]
-    itr += tot
+    load_data_variables['train_itr'] = itr + tot
     img_tensors = tf.stack(img_list)
     #print(img_tensors)
     #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
@@ -200,7 +200,7 @@ def generate_validation_batch():
     itr = load_data_variables['val_itr']
     filenames = load_data_variables['val_train_filenames']
     img_list = [read_gif(filenames[i]) for i in range(itr, itr + tot)]
-    itr += tot
+    load_data_variables['val_itr'] = itr + tot
     img_tensors = tf.stack(img_list)
     #print(img_tensors)
     #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
