@@ -30,6 +30,7 @@ constants = {
 
 graph = tf.Graph()
 #GPU options: this part directly migrated from original settings
+print('Setting GPU options...')
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction = 1.0)
 tf_config = tf.ConfigProto(gpu_options = gpu_options)
 sess = tf.Session(graph = graph, config = tf_config)
