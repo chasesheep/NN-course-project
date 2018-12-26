@@ -35,7 +35,6 @@ mil_variables = {
     'imgB': None,
     'actionA': None,
     'actionB': None,
-    'not-built': True,
     'weights': None
 }
 
@@ -51,17 +50,20 @@ def init_network_config(config):
     mil_config['fc_layer_size'] = config['fc_layer_size']
     mil_config['two_head'] = config['two_head']
     mil_config['decay'] = config['decay']
+    mil_config['clip_min'] = config['clip_min']
+    mil_config['clip_max'] = config['clip_max']
 
 
 def init_network(graph, training):
-    if (mil_variables['not-built']):
+    if (training):
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
         mil_variables['imgA'] = tf.placeholder(tf.float32, name='imgA')
         mil_variables['imgB'] = tf.placeholder(tf.float32, name='imgB')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
-        mil_variables['not-built'] = False    
+
+    result = construct_network(training)   
     
 
 def construct_network(training = True):
@@ -71,7 +73,13 @@ def construct_network(training = True):
     imgB = mil_variables['imgB']
     actionA = mil_variables['actionA']
     actionB = mil_variables['actionB']
-    
+
+    '''imgA = imgA.reshape((-1, mil_constants['gif_height'], \
+                                 mil_constants['gif_width'], 3))
+    imgB = imgB.reshape((-1, mil_constants['gif_height'], \
+                                 mil_constants['gif_width'], 3))'''
+
+    print('Constructing network...')
     reuse = not training
     with tf.variable_scope('model', reuse=reuse) as training_scope:
         if training:
@@ -81,16 +89,40 @@ def construct_network(training = True):
 
         def maml(inputs):
             stateA, stateB, imgA, imgB, actionA, actionB = inputs
-            pass
+            fast_weights = dict(zip(weights.keys(), weights.values()))
 
-        result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, actionA, actionB))
+            #inner update
+            outputA = forward(imgA, stateA, fast_weights, is_training=training)
+            lossA = euclidean_loss_layer(outputA, actionA)
+
+            #calculate gradient
+            grads = tf.gradients(lossA, list(fast_weights.values()))
+
+            #clip gradient(optional)
+            clip_min = mil_config['clip_min']
+            clip_max = mil_config['clip_max']
+            grads = [tf.clip_by_value(item, clip_min, clip_max) for item in grads]
+
+            #update fast_weights
+            gradients = dict(zip(fast_weights.keys(), grads))
+            fast_weights = dict(zip(fast_weights.keys(), [fast_weights[key] - lr * gradients[key] for key in fast_weights.keys()]))
+
+            #outer update
+            outputB = forward(imgB, stateB, fast_weights, is_training=training)
+            lossB = euclidean_loss_layer(outputB, actionB)
+
+            return [outputA, outputB, lossA, lossB]
+        
+        out_dtype = [tf.float32, tf.float32, tf.float32, tf.float32]
+        result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, \
+                                        actionA, actionB), dtype = out_dtype)
         #Use map_fn for parallel computation
         #Otherwise the computation is serial
-
         return result
     
 
 def init_weights():
+    print('initializing weights...')
     weights = {}
 
     gif_height = mil_constants['gif_height']

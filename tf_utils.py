@@ -33,3 +33,7 @@ def norm_activate(layer, norm_type=None, activation_fn=tf.nn.relu, id=0, prefix=
                 return activation_fn(tf.contrib.layers.layer_norm(layer, center=True, scale=False, scope=vs, reuse=True))
         else:
             raise NotImplementedError('Other types of norm not implemented.')
+
+def euclidean_loss_layer(a, b, multiplier = 100.0):
+    multiplier = tf.constant(multiplier, dtype='float')
+    return tf.reduce_mean(tf.square(a * multiplier - b * multiplier))

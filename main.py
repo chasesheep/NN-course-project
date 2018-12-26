@@ -17,7 +17,9 @@ config = {
     'maml_tasks_per_batch': 5,
     'decay': 0.9,
     'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
-    'fc_bt': True
+    'fc_bt': True,
+    'clip_min' : -10.0,
+    'clip_max' : 10.0
 }
 
 constants = {
