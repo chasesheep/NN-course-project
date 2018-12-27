@@ -210,7 +210,7 @@ def generate_training_batch(it):
     tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
     itr = load_data_variables['train_itr']
     filenames = load_data_variables['all_train_filenames']
-    img_listA = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 == 0)]
+    '''img_listA = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 == 0)]
     img_listB = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 != 0)]
     load_data_variables['train_itr'] = itr + tot
     img_tensorsA = tf.stack(img_listA)
@@ -221,14 +221,11 @@ def generate_training_batch(it):
                    load_data_constants['color_channels']))
     img_tensorsB = tf.reshape(img_tensorsB, (-1, load_data_constants['img_height'], \
                    load_data_constants['img_width'], \
-                   load_data_constants['color_channels']))
-    #print(img_tensors)
-    #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
-    #tf.Print(img_tensors[0][0][0][0], [img_tensors[0][0][0][0]])
+                   load_data_constants['color_channels']))'''
 
-    #Well, I guess it's right here...
-    #To be further checked
-    #print(img_tensorsA)
+    img_namesA = [filenames[i] for i in range(itr, itr + tot) if (i % 2 == 0)]
+    img_namesB = [filenames[i] for i in range(itr, itr + tot) if (i % 2 != 0)]
+    load_data_variables['train_itr'] = itr + tot
 
     all_train_index = load_data_variables['all_train_index']
     all_train_gif_index = load_data_variables['all_train_gif_index']
@@ -250,14 +247,14 @@ def generate_training_batch(it):
               for i in range(size1*size2) if (i % 2 == 0)]
     actionB = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
               for i in range(size1*size2) if (i % 2 != 0)]
-    return img_tensorsA, img_tensorsB, stateA, stateB, actionA, actionB
+    return img_namesA, img_namesB, stateA, stateB, actionA, actionB
 
 def generate_validation_batch(it):
     it = int(it / load_data_config['val_interval'])-1
     tot = load_data_config['tasks_per_batch'] * load_data_config['K-shots'] * 2
     itr = load_data_variables['val_itr']
     filenames = load_data_variables['all_val_filenames']
-    img_listA = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 == 0)]
+    '''img_listA = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 == 0)]
     img_listB = [read_gif(filenames[i]) for i in range(itr, itr + tot) if (i % 2 != 0)]
     load_data_variables['val_itr'] = itr + tot
     img_tensorsA = tf.stack(img_listA)
@@ -268,7 +265,11 @@ def generate_validation_batch(it):
                    load_data_constants['color_channels']))
     img_tensorsB = tf.reshape(img_tensorsB, (-1, load_data_constants['img_height'], \
                    load_data_constants['img_width'], \
-                   load_data_constants['color_channels']))
+                   load_data_constants['color_channels']))'''
+
+    img_namesA = [filenames[i] for i in range(itr, itr + tot) if (i % 2 == 0)]
+    img_namesB = [filenames[i] for i in range(itr, itr + tot) if (i % 2 != 0)]
+    load_data_variables['val_itr'] = itr + tot
     #print(img_tensors)
     #tf.print(img_tensors[0][0][0][0], output_stream = sys.stdout)
     #tf.Print(img_tensors[0][0][0][0], [img_tensors[0][0][0][0]])
@@ -297,7 +298,7 @@ def generate_validation_batch(it):
               for i in range(size1*size2) if (i % 2 == 0)]
     actionB = [data[index[int(i/size2)]]['demoU'][gif_index[int(i/size2)][i%size2]]\
               for i in range(size1*size2) if (i % 2 != 0)]
-    return img_tensorsA, img_tensorsB, stateA, stateB, actionA, actionB
+    return img_namesA, img_namesB, stateA, stateB, actionA, actionB
 
 def read_gif(filename):
     img = tf.image.decode_gif(filename)

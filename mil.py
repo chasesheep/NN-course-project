@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from tf_utils import *
+from load_data import read_gif
 
 mil_config = {
     # 'K-shots': None,
@@ -79,15 +80,18 @@ def construct_network(training = True):
     if (training):
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
-        mil_variables['imgA'] = tf.placeholder(tf.float32, name='imgA')
-        mil_variables['imgB'] = tf.placeholder(tf.float32, name='imgB')
+        mil_variables['img_namesA'] = tf.placeholder(tf.string, name='img_namesA')
+        mil_variables['img_namesB'] = tf.placeholder(tf.string, name='img_namesB')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
     
     stateA = mil_variables['stateA']
     stateB = mil_variables['stateB']
-    imgA = mil_variables['imgA']
-    imgB = mil_variables['imgB']
+    #imgA = mil_variables['imgA']
+    #imgB = mil_variables['imgB']
+    imgA = tf.map_fn(read_gif, mil_variables['img_namesA'], dtype=tf.float32)
+    imgB = tf.map_fn(read_gif, mil_variables['img_namesB'], dtype=tf.float32)
+    
     actionA = mil_variables['actionA']
     actionB = mil_variables['actionB']
 
