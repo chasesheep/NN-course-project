@@ -78,10 +78,11 @@ def init_network(graph, training):
 def construct_network(training = True):
     
     if (training):
+        length = mil_config['maml_tasks_per_batch'] * mil_config['K-shots']
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
-        mil_variables['img_namesA'] = tf.placeholder(tf.string, name='img_namesA')
-        mil_variables['img_namesB'] = tf.placeholder(tf.string, name='img_namesB')
+        mil_variables['img_namesA'] = tf.placeholder(tf.string, shape=(length), name='img_namesA')
+        mil_variables['img_namesB'] = tf.placeholder(tf.string, shape=(length), name='img_namesB')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
     

@@ -5,7 +5,7 @@ import tensorflow as tf
 from natsort import natsorted
 
 load_data_config = {
-    'reach_path' : 'data\\sim_vision_reach',
+    'reach_path' : 'data/sim_vision_reach',
     'test_path' : 'data',
     'push_path' : 'data',      #to be modified
     'shuffle' : True,
@@ -301,8 +301,10 @@ def generate_validation_batch(it):
     return img_namesA, img_namesB, stateA, stateB, actionA, actionB
 
 def read_gif(filename):
-    print(filename)
-    img = tf.image.decode_gif(filename)
+    #print('Reading gif')
+    img = tf.read_file(filename)
+    #print(img)
+    img = tf.image.decode_gif(img)
     img.set_shape((load_data_constants['frames_in_gif'], \
                    load_data_constants['img_height'], \
                    load_data_constants['img_width'], \
