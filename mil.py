@@ -25,6 +25,7 @@ mil_constants = {
     'bt_dim': 10,
     'gif_width': 80,
     'gif_height': 64,
+    'gif_channels' : 3
     # 'conv_out_size': None # will be calculated in init_weights
     # 'conv_out_size_final": None # will be calculated in init_weights, conv_out_size + state_dim [+ bt_dim]
 }
@@ -71,6 +72,7 @@ def init_network(graph, training):
             mil_variables['train_lossA'] = lossA
             mil_variables['train_lossB'] = lossB
             train_op = tf.train.AdamOptimizer(lr).minimize(lossB)
+            mil_variables['train_op'] = train_op
         else:
             mil_variables['val_lossA'] = lossA
             mil_variables['val_lossB'] = lossB
@@ -92,6 +94,9 @@ def construct_network(training = True):
     #imgB = mil_variables['imgB']
     imgA = tf.map_fn(read_gif, mil_variables['img_namesA'], dtype=tf.float32)
     imgB = tf.map_fn(read_gif, mil_variables['img_namesB'], dtype=tf.float32)
+
+    #imgA = tf.reshape(imgA, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
+    #imgB = tf.reshape(imgB, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
     
     actionA = mil_variables['actionA']
     actionB = mil_variables['actionB']

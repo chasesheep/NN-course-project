@@ -11,8 +11,8 @@ config = {
     'learning_rate': 0.001,
     'meta_learning_rate': 0.001,
     'K-shots': 1,
-    'train_samples': 500,
-    'validate_samples': 100,
+    'train_samples': 120,
+    'validate_samples': 20,
     'split_channels': 30,
     'kernel_size': 3,
     'fc_layer_size': 200,
@@ -89,14 +89,12 @@ if __name__ == '__main__':
         }
         with graph.as_default():
             result = sess.run(
-                [mil_variables['train_lossA'],
+                [mil_variables['train_op'],
+                 mil_variables['train_lossA'],
                  mil_variables['train_lossB']],
                 feed_dict=feed_dict)
-            #print(result)
-            #prelosses.extend(np.mean(result[0]))
-            #postlosses.extend(np.mean(result[1]))
-            prelosses.append(result[0])
-            postlosses.append(result[1])
+            prelosses.append(result[1])
+            postlosses.append(result[2])
 
         if itr % config['print_interval'] == 0 and itr != 0:
             preloss = np.mean(prelosses)
