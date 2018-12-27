@@ -11,15 +11,15 @@ config = {
     'learning_rate': 0.001,
     'meta_learning_rate': 0.001,
     'K-shots': 1,
-    'train_samples': 100,
-    'validate_samples': 20,
+    'train_samples': 500,
+    'validate_samples': 100,
     'split_channels': 30,
     'kernel_size': 3,
     'fc_layer_size': 200,
     'two_head': False,
-    'iterations': 300,
-    'val_interval': 30,
-    'print_interval': 10,
+    'iterations': 1000,
+    'val_interval': 50,
+    'print_interval': 50,
     'maml_tasks_per_batch': 5,
     'decay': 0.9,
     'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
@@ -126,10 +126,8 @@ if __name__ == '__main__':
                     [mil_variables['val_lossA'],
                      mil_variables['val_lossB']],
                     feed_dict=feed_dict)
-                #preloss = np.mean(result[0])
-                #postloss = np.mean(result[1])
-                prelosses.append(result[0])
-                postlosses.append(result[1])
+                preloss = np.mean(result[0])
+                postloss = np.mean(result[1])
                 print('Val Iteration %d: \n'
                       'preloss is %.2f, postloss is %.2f' % (
                           itr, preloss, postloss))
