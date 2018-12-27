@@ -72,7 +72,7 @@ if __name__ == '__main__':
     train_prelosses_history, train_postlosses_history = [], []
     val_prelosses_history, val_postlosses_history = [], []
     for itr in range(config['iterations']):
-        print('Running itr '+str(itr))
+        #print('Running itr '+str(itr))
         img_namesA, img_namesB, stateA, stateB, actionA, actionB = \
                 generate_training_batch(itr)
         # imgA = imgA.eval(session=sess)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 [mil_variables['train_lossA'],
                  mil_variables['train_lossB']],
                 feed_dict=feed_dict)
-            print(result)
+            #print(result)
             #prelosses.extend(np.mean(result[0]))
             #postlosses.extend(np.mean(result[1]))
             prelosses.append(result[0])
@@ -107,6 +107,8 @@ if __name__ == '__main__':
             print('Train Iteration %d: \n'
                   'preloss is %.2f, postloss is %.2f' % (
                       itr, preloss, postloss))
+            with graph.as_default():
+                saver.save(sess, config['log_dir'] + '_%d' % itr)
 
         if itr % config['val_interval'] == 0 and itr != 0:
             imgA, imgB, stateA, stateB, actionA, actionB = \
