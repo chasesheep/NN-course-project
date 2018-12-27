@@ -5,7 +5,7 @@ from mil import *
 import os
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 config = {
     'learning_rate': 0.001,
@@ -72,16 +72,18 @@ if __name__ == '__main__':
     train_prelosses_history, train_postlosses_history = [], []
     val_prelosses_history, val_postlosses_history = [], []
     for itr in range(config['iterations']):
-        imgA, imgB, stateA, stateB, actionA, actionB = \
+        img_namesA, img_namesB, stateA, stateB, actionA, actionB = \
                 generate_training_batch(itr)
         # imgA = imgA.eval(session=sess)
+        #print(img_namesA)
+        #print(img_namesB)
         feed_dict = {
             mil_variables['stateA']: stateA,
             mil_variables['actionA']: actionA,
-            mil_variables['imgA']: [],
+            mil_variables['img_namesA']: img_namesA,
             mil_variables['stateB']: stateB,
             mil_variables['actionB']: actionB,
-            mil_variables['imgB']: []
+            mil_variables['img_namesB']: img_namesB
         }
         with graph.as_default():
             result = sess.run(
@@ -126,9 +128,9 @@ if __name__ == '__main__':
                 val_prelosses_history.append(preloss)
                 val_postlosses_history.append(postloss)
 
-    plt.plot(train_prelosses_history)
+    '''plt.plot(train_prelosses_history)
     plt.plot(train_postlosses_history)
     plt.legend(['pre', 'post'], loc='upper left')
     plt.xlabel('iter')
     plt.ylabel('train loss')
-    plt.show()
+    plt.show()'''
