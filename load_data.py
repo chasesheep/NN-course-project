@@ -25,7 +25,9 @@ load_data_config = {
 
     #normalization factors
     'state_scale' : None,
-    'state_bias' : None
+    'state_bias' : None,
+    'task_type' : None
+
 }
 
 load_data_constants = {
@@ -61,6 +63,7 @@ def init_load_data_config(config):
     load_data_config['val_interval'] = config['val_interval']
     load_data_config['tasks_per_batch'] = config['maml_tasks_per_batch']
     load_data_config['K-shots'] = config['K-shots']
+    load_data_config['task_type'] = config['task_type']
 
 def load_states_and_actions():
     
@@ -78,6 +81,14 @@ def load_states_and_actions():
 
     print('Loading pickle files...')
     selected_data = [unpickle(files[i]) for i in selected_index]
+
+    if (load_data_config['task_type'] == 'pushing'):
+        for i in range(size):
+            selected_data[i]['demoX'] = selected_data['demoX'][6:-6, :, :]
+            selected_data[i]['demoU'] = selected_data['demoU'][6:-6, :, :]
+    #print(selected_data[0]['demoX'])
+    #print(selected_data[0]['demoU'])
+
     normalize_states(selected_data)
     load_data_variables['selected_index'] = selected_index
     load_data_variables['selected_data'] = selected_data
@@ -145,6 +156,10 @@ def gen_batch_filenames():
         gif_index = []
         for folder in folders:
             gifs = natsorted(os.listdir(folder))
+
+            if (load_data_config['task_type'] == 'pushing'):
+                gifs = gifs[6:-6]
+
             gif_choices = np.random.choice(range(len(gifs)), shots, replace = False)
             gif_name_choices = [os.path.join(folder, gifs[item]) for item in gif_choices]
             all_train_filenames.extend(gif_name_choices)
@@ -159,6 +174,8 @@ def gen_batch_filenames():
             gif_index = []
             for folder in folders:
                 gifs = natsorted(os.listdir(folder))
+                if (load_data_config['task_type'] == 'pushing'):
+                    gifs = gifs[6:-6]
                 gif_choices = np.random.choice(range(len(gifs)), shots, replace = False)
                 gif_name_choices = [os.path.join(folder, gifs[item]) for item in gif_choices]
                 all_val_filenames.extend(gif_name_choices)
