@@ -1,11 +1,11 @@
 from load_data import *
 from mil import *
-from eval_reaching import evaluate_vision_reach
+#from eval_reaching import evaluate_vision_reach
 
 import os
 import tensorflow as tf
 import numpy as np
-import gym
+#import gym
 
 # import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ config = {
     'kernel_size': 3,
     'fc_layer_size': 200,
     'two_head': False, # some bugs here
-    'iterations': 10000,
+    'iterations': 300,
     'val_interval': 100,
     'print_interval': 20,
     'maml_tasks_per_batch': 4,
@@ -64,8 +64,9 @@ if __name__ == '__main__':
         exit(1)
 
     init_network_config(config)
-    init_network(graph, True)
+
     if config['task_state'] == 'training':
+        init_network(graph, True)
         init_network(graph, False, False)
     else:
         init_network(graph, False, True)

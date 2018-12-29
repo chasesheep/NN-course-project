@@ -81,7 +81,7 @@ def init_network(graph, training, is_testing=False):
 
 
 def construct_network(training=True, is_testing=False):
-    if (training):
+    if (training or is_testing):
         # length = mil_config['maml_tasks_per_batch'] * mil_config['K-shots']
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
@@ -119,9 +119,9 @@ def construct_network(training=True, is_testing=False):
                                  mil_constants['gif_width'], 3))'''
 
     print('Constructing network...')
-    reuse = not training
+    reuse = (not training) and (not is_testing)
     with tf.variable_scope('model', reuse=reuse) as training_scope:
-        if training:
+        if training or is_testing:
             mil_variables['weights'] = init_weights()
         weights = mil_variables['weights']
         lr = mil_config['learning_rate']
@@ -136,18 +136,19 @@ def construct_network(training=True, is_testing=False):
 
             # calculate gradient
             grads = tf.gradients(lossA, list(fast_weights.values()))
+            gradients = dict(zip(fast_weights.keys(), grads))
+            # In two-head structure, some gradients may not be calculated
+            for key in gradients.keys():
+                if gradients[key] is None:
+                    gradients[key] = tf.zeros_like(fast_weights[key])
 
             # clip gradient(optional)
             clip_min = mil_config['clip_min']
             clip_max = mil_config['clip_max']
-            grads = [tf.clip_by_value(item, clip_min, clip_max) for item in
-                     grads]
+            for key in gradients.keys():
+                gradients[key] = tf.clip_by_value(gradients[key], clip_min, clip_max)
 
             # update fast_weights
-            gradients = dict(zip(fast_weights.keys(), grads))
-            for key in gradients.keys():
-                if gradients[key] is None:
-                    gradients[key] = tf.zeros_like(fast_weights[key])
             fast_weights = dict(zip(fast_weights.keys(),
                                     [fast_weights[key] - lr * gradients[key] for
                                      key in fast_weights.keys()]))
