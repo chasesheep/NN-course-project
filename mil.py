@@ -25,7 +25,7 @@ mil_constants = {
     'bt_dim': 10,
     'gif_width': 80,
     'gif_height': 64,
-    'gif_channels' : 3
+    'gif_channels': 3
     # 'conv_out_size': None # will be calculated in init_weights
     # 'conv_out_size_final": None # will be calculated in init_weights, conv_out_size + state_dim [+ bt_dim]
 }
@@ -57,9 +57,9 @@ def init_network_config(config):
     mil_config['clip_max'] = config['clip_max']
 
 
-def init_network(graph, training):
+def init_network(graph, training, is_testing=False):
     with graph.as_default():
-        result = construct_network(training)
+        result = construct_network(training, is_testing)
         outputAs, outputBs, lossAs, lossBs = result
 
         batch_size = mil_config['maml_tasks_per_batch']
@@ -73,31 +73,43 @@ def init_network(graph, training):
             mil_variables['train_lossB'] = lossB
             train_op = tf.train.AdamOptimizer(lr).minimize(lossB)
             mil_variables['train_op'] = train_op
-        else:
+        elif not is_testing:
             mil_variables['val_lossA'] = lossA
             mil_variables['val_lossB'] = lossB
+        else:
+            mil_variables['val_op'] = outputBs[-1]
 
-def construct_network(training = True):
-    
+
+def construct_network(training=True, is_testing=False):
     if (training):
-        length = mil_config['maml_tasks_per_batch'] * mil_config['K-shots']
+        # length = mil_config['maml_tasks_per_batch'] * mil_config['K-shots']
         mil_variables['stateA'] = tf.placeholder(tf.float32, name='stateA')
         mil_variables['stateB'] = tf.placeholder(tf.float32, name='stateB')
-        mil_variables['img_namesA'] = tf.placeholder(tf.string, shape=(length), name='img_namesA')
-        mil_variables['img_namesB'] = tf.placeholder(tf.string, shape=(length), name='img_namesB')
+        mil_variables['img_namesA'] = tf.placeholder(tf.string,
+                                                     name='img_namesA')
+        mil_variables['img_namesB'] = tf.placeholder(tf.string,
+                                                     name='img_namesB')
+        mil_variables['obs'] = tf.placeholder(tf.float32, name='obs')
         mil_variables['actionA'] = tf.placeholder(tf.float32, name='actionA')
         mil_variables['actionB'] = tf.placeholder(tf.float32, name='actionB')
-    
+
     stateA = mil_variables['stateA']
     stateB = mil_variables['stateB']
-    #imgA = mil_variables['imgA']
-    #imgB = mil_variables['imgB']
-    imgA = tf.map_fn(read_gif, mil_variables['img_namesA'], dtype=tf.float32)
-    imgB = tf.map_fn(read_gif, mil_variables['img_namesB'], dtype=tf.float32)
+    # imgA = mil_variables['imgA']
+    # imgB = mil_variables['imgB']
+    imgA = tf.map_fn(read_gif, mil_variables['img_namesA'],
+                     dtype=tf.float32)
 
-    #imgA = tf.reshape(imgA, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
-    #imgB = tf.reshape(imgB, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
-    
+    if is_testing:
+        # imgB = tf.reshape(mil_variables['img_B'], [1, 64, 80, 3])
+        imgB = mil_variables['img_B']
+    else:
+        imgB = tf.map_fn(read_gif, mil_variables['img_namesB'],
+                         dtype=tf.float32)
+
+    # imgA = tf.reshape(imgA, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
+    # imgB = tf.reshape(imgB, shape=(-1, mil_constants['gif_height'], mil_constants['gif_width'], mil_constants['gif_channels']))
+
     actionA = mil_variables['actionA']
     actionB = mil_variables['actionB']
 
@@ -118,35 +130,38 @@ def construct_network(training = True):
             stateA, stateB, imgA, imgB, actionA, actionB = inputs
             fast_weights = dict(zip(weights.keys(), weights.values()))
 
-            #inner update
+            # inner update
             outputA = forward(imgA, stateA, fast_weights, is_training=training)
             lossA = euclidean_loss_layer(outputA, actionA)
 
-            #calculate gradient
+            # calculate gradient
             grads = tf.gradients(lossA, list(fast_weights.values()))
 
-            #clip gradient(optional)
+            # clip gradient(optional)
             clip_min = mil_config['clip_min']
             clip_max = mil_config['clip_max']
-            grads = [tf.clip_by_value(item, clip_min, clip_max) for item in grads]
+            grads = [tf.clip_by_value(item, clip_min, clip_max) for item in
+                     grads]
 
-            #update fast_weights
+            # update fast_weights
             gradients = dict(zip(fast_weights.keys(), grads))
-            fast_weights = dict(zip(fast_weights.keys(), [fast_weights[key] - lr * gradients[key] for key in fast_weights.keys()]))
+            fast_weights = dict(zip(fast_weights.keys(),
+                                    [fast_weights[key] - lr * gradients[key] for
+                                     key in fast_weights.keys()]))
 
-            #outer update
+            # outer update
             outputB = forward(imgB, stateB, fast_weights, is_training=training)
             lossB = euclidean_loss_layer(outputB, actionB)
 
             return [outputA, outputB, lossA, lossB]
-        
+
         out_dtype = [tf.float32, tf.float32, tf.float32, tf.float32]
         result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, \
-                                        actionA, actionB), dtype = out_dtype)
-        #Use map_fn for parallel computation
-        #Otherwise the computation is serial
+                                        actionA, actionB), dtype=out_dtype)
+        # Use map_fn for parallel computation
+        # Otherwise the computation is serial
         return result
-    
+
 
 def init_weights():
     print('initializing weights...')
@@ -172,15 +187,18 @@ def init_weights():
     for stride in strides:
         downsample_factor *= stride[1]
     mil_constants['conv_out_size'] = int(np.ceil(gif_width / downsample_factor)) \
-                                     * int(np.ceil(gif_height / downsample_factor)) \
+                                     * int(
+        np.ceil(gif_height / downsample_factor)) \
                                      * split_channels[-1]
 
     # conv weights
     fan_in = gif_channels
     for i in range(conv_layers):
-        weights['wc%d' % (i + 1)] = init_conv_weights_xavier([kernel_size[i], kernel_size[i], fan_in,
-                                                              split_channels[i]], name='wc%d' % (i + 1))
-        weights['bc%d' % (i + 1)] = init_bias(split_channels[i], name='bc%d' % (i + 1))
+        weights['wc%d' % (i + 1)] = init_conv_weights_xavier(
+            [kernel_size[i], kernel_size[i], fan_in,
+             split_channels[i]], name='wc%d' % (i + 1))
+        weights['bc%d' % (i + 1)] = init_bias(split_channels[i],
+                                              name='bc%d' % (i + 1))
         fan_in = split_channels[i]
 
     # shape of fc in
@@ -189,7 +207,8 @@ def init_weights():
     # fc bias transformation
     if mil_config['fc_bt']:
         in_shape += mil_constants['bt_dim']
-        weights['context'] = tf.get_variable('context', initializer=tf.zeros([mil_constants['bt_dim']], dtype=tf.float32))
+        weights['context'] = tf.get_variable('context', initializer=tf.zeros(
+            [mil_constants['bt_dim']], dtype=tf.float32))
 
     mil_constants['conv_out_size_final'] = in_shape
 
@@ -202,21 +221,24 @@ def init_weights():
 
     # fc weights
     for i in range(fc_layers):
-        weights['w_%d' % i] = init_weight([in_shape, fc_layer_size[i]], name='w_%d' % i)
+        weights['w_%d' % i] = init_weight([in_shape, fc_layer_size[i]],
+                                          name='w_%d' % i)
         weights['b_%d' % i] = init_bias([fc_layer_size[i]], name='b_%d' % i)
 
         # two head
         if i == fc_layers - 1 and mil_config['two_head']:
-            weights['w_%d_two_heads' % i] = init_weight([in_shape, fc_layer_size[i]], name='w_%d_two_heads' % i)
-            weights['b_%d_two_heads' % i] = init_bias([fc_layer_size[i]], name='b_%d_two_heads' % i)
+            weights['w_%d_two_heads' % i] = init_weight(
+                [in_shape, fc_layer_size[i]], name='w_%d_two_heads' % i)
+            weights['b_%d_two_heads' % i] = init_bias([fc_layer_size[i]],
+                                                      name='b_%d_two_heads' % i)
 
         in_shape = fc_layer_size[i]
 
     return weights
 
 
-def forward(img_input, state_input, weights, meta_testing=False, is_training=True):
-
+def forward(img_input, state_input, weights, meta_testing=False,
+            is_training=True):
     # basic config
     gif_height = mil_constants['gif_height']
     gif_width = mil_constants['gif_width']
@@ -241,7 +263,8 @@ def forward(img_input, state_input, weights, meta_testing=False, is_training=Tru
     # fc bt
     if mil_config['fc_bt']:
         context = tf.gather(tf.zeros_like(tf.reshape(img_input,
-                                                     [-1, gif_height * gif_width * gif_channels])),
+                                                     [-1,
+                                                      gif_height * gif_width * gif_channels])),
                             axis=1,
                             indices=list(range(mil_constants['bt_dim'])))
         context += weights['context']
@@ -254,9 +277,11 @@ def forward(img_input, state_input, weights, meta_testing=False, is_training=Tru
     # fc layers
     for i in range(fc_layers):
         if i == fc_layers - 1 and mil_config['two_head'] and not meta_testing:
-            fc_layer = tf.matmul(fc_layer, weights['w_%d_two_heads' % i]) + weights['b_%d_two_heads' % i]
+            fc_layer = tf.matmul(fc_layer, weights['w_%d_two_heads' % i]) + \
+                       weights['b_%d_two_heads' % i]
         else:
-            fc_layer = tf.matmul(fc_layer, weights['w_%d' % i]) + weights['b_%d' % i]
+            fc_layer = tf.matmul(fc_layer, weights['w_%d' % i]) + weights[
+                'b_%d' % i]
         if i != fc_layers - 1:
             fc_layer = tf.nn.relu(fc_layer)
 

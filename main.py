@@ -1,11 +1,13 @@
-from load_data import data_preload, generate_training_batch, \
-    generate_validation_batch, load_data_variables
+from load_data import *
 from mil import *
+from eval_reaching import evaluate_vision_reach
 
 import os
 import tensorflow as tf
 import numpy as np
-#import matplotlib.pyplot as plt
+import gym
+
+# import matplotlib.pyplot as plt
 
 config = {
     'learning_rate': 0.001,
@@ -29,9 +31,9 @@ config = {
 
     'checkpoint_num': 10,
     'log_dir': 'logs/',
+    'is_record_gif': True,
     'task_type': 'reaching',
-
-    'task_state': 'training',
+    'task_state': 'testing',
 }
 
 constants = {
@@ -51,12 +53,21 @@ if __name__ == '__main__':
     sess = tf.Session(graph=graph, config=tf_config)
 
     # load data
-    with sess.as_default():
-        data_preload(config)
+    if config['task_state'] == 'training':
+        with sess.as_default():
+            data_preload(config)
+    elif config['task_state'] == 'testing':
+        generate_test_demos()
+    else:
+        print('Unknown operation. Aborted.')
+        exit(1)
 
     init_network_config(config)
     init_network(graph, True)
-    init_network(graph, False)
+    if config['task_state'] == 'training':
+        init_network(graph, False)
+    else:
+        init_network(graph, False, True)
 
     with graph.as_default():
         saver = tf.train.Saver(tf.global_variables(),
@@ -64,8 +75,11 @@ if __name__ == '__main__':
 
     if not os.path.exists(config['log_dir']):
         os.mkdir(config['log_dir'])
-    if tf.train.get_checkpoint_state(config['log_dir']):
-        saver.restore(sess, tf.train.latest_checkpoint(config['log_dir']))
+    log_dir = os.path.join(config['log_dir'], config['task_type'])
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    if tf.train.get_checkpoint_state(log_dir):
+        saver.restore(sess, tf.train.latest_checkpoint(log_dir))
     else:
         with graph.as_default():
             init_op = tf.global_variables_initializer()
@@ -76,13 +90,13 @@ if __name__ == '__main__':
         train_prelosses_history, train_postlosses_history = [], []
         val_prelosses_history, val_postlosses_history = [], []
         for itr in range(config['iterations']):
-            #print('Running itr '+str(itr))
+            # print('Running itr '+str(itr))
             img_namesA, img_namesB, stateA, stateB, actionA, actionB = \
-                    generate_training_batch(itr)
+                generate_training_batch(itr)
             # imgA = imgA.eval(session=sess)
-            #img_namesA = img_namesB = ['0.gif', '1.gif', '2.gif', '3.gif', '4.gif']
-            #print(img_namesA)
-            #print(img_namesB)
+            # img_namesA = img_namesB = ['0.gif', '1.gif', '2.gif', '3.gif', '4.gif']
+            # print(img_namesA)
+            # print(img_namesB)
             feed_dict = {
                 mil_variables['stateA']: stateA,
                 mil_variables['actionA']: actionA,
@@ -110,7 +124,7 @@ if __name__ == '__main__':
                       'preloss is %.2f, postloss is %.2f' % (
                           itr, preloss, postloss))
                 with graph.as_default():
-                    saver.save(sess, config['log_dir'] + '_%d' % itr)
+                    saver.save(sess, config['log_dir'] + ('model_%d' % itr))
 
             if itr % config['val_interval'] == 0 and itr != 0:
                 imgA, imgB, stateA, stateB, actionA, actionB = \
@@ -144,3 +158,7 @@ if __name__ == '__main__':
         plt.show()'''
     elif config['task_state'] == 'testing':
         print('Testing')
+        env = gym.make('ReacherMILTest-v1')
+        evaluate_vision_reach(env, graph, mil_variables, sess,
+                              load_data_variables, config['is_record_gif'],
+                              log_dir)
