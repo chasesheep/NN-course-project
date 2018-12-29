@@ -145,6 +145,9 @@ def construct_network(training=True, is_testing=False):
 
             # update fast_weights
             gradients = dict(zip(fast_weights.keys(), grads))
+            for key in gradients.keys():
+                if gradients[key] is None:
+                    gradients[key] = tf.zeros_like(fast_weights[key])
             fast_weights = dict(zip(fast_weights.keys(),
                                     [fast_weights[key] - lr * gradients[key] for
                                      key in fast_weights.keys()]))
