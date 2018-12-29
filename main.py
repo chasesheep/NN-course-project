@@ -18,7 +18,7 @@ config = {
     'split_channels': 30,
     'kernel_size': 3,
     'fc_layer_size': 200,
-    'two_head': False,
+    'two_head': False, # some bugs here
     'iterations': 10000,
     'val_interval': 100,
     'print_interval': 20,
@@ -33,7 +33,7 @@ config = {
     'log_dir': 'logs/',
     'is_record_gif': True,
     'task_type': 'reaching',
-    'task_state': 'testing',
+    'task_state': 'training',
 }
 
 constants = {
@@ -48,8 +48,9 @@ if __name__ == '__main__':
     graph = tf.Graph()
     # GPU options: this part directly migrated from original settings
     print('Setting GPU options...')
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
     tf_config = tf.ConfigProto(gpu_options=gpu_options)
+    tf_config.gpu_options.allow_growth = True
     sess = tf.Session(graph=graph, config=tf_config)
 
     # load data
@@ -65,7 +66,7 @@ if __name__ == '__main__':
     init_network_config(config)
     init_network(graph, True)
     if config['task_state'] == 'training':
-        init_network(graph, False)
+        init_network(graph, False, False)
     else:
         init_network(graph, False, True)
 
@@ -124,7 +125,7 @@ if __name__ == '__main__':
                       'preloss is %.2f, postloss is %.2f' % (
                           itr, preloss, postloss))
                 with graph.as_default():
-                    saver.save(sess, config['log_dir'] + ('model_%d' % itr))
+                    saver.save(sess, log_dir + ('/model_%d' % itr))
 
             if itr % config['val_interval'] == 0 and itr != 0:
                 imgA, imgB, stateA, stateB, actionA, actionB = \
