@@ -1,7 +1,10 @@
 import gym
 import numpy as np
 import tensorflow as tf
-import pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 import os
 import time
 import imageio
@@ -53,7 +56,7 @@ def evaluate_vision_reach(env, graph, mil_variables, sess, load_data_variables,
                     # obs = np.transpose(obs, [2, 1, 0]) / 255.0
                     # obs = obs.reshape(1, 64, 80, 3)
                     obs = (obs / 255.0)[np.newaxis, np.newaxis, :, :, :]
-                    print(obs.shape)
+                    # print(obs.shape)
                     state = state.reshape(1, 1, -1)
 
                     feed_dict = {
@@ -63,7 +66,7 @@ def evaluate_vision_reach(env, graph, mil_variables, sess, load_data_variables,
                         mil_variables['img_namesA']: selected_demoO,
                         mil_variables['stateB']: state.dot(scale) + bias,
                         mil_variables['actionB']: selected_demoU,
-                        mil_variables['img_B']: obs
+                        mil_variables['obs']: obs
                     }
 
                     with graph.as_default():
