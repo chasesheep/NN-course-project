@@ -91,14 +91,16 @@ def load_states_and_actions():
 
     if (load_data_config['task_type'] == 'pushing'):
         for i in range(size):
-            selected_data[i]['demoX'] = selected_data['demoX'][6:-6, :, :]
-            selected_data[i]['demoU'] = selected_data['demoU'][6:-6, :, :]
+            #remove some of the pictures?
+            selected_data[i]['demoX'] = selected_data[i]['demoX'][6:-6, :, :]
+            selected_data[i]['demoU'] = selected_data[i]['demoU'][6:-6, :, :]
     # print(selected_data[0]['demoX'])
     # print(selected_data[0]['demoU'])
 
     normalize_states(selected_data)
     load_data_variables['selected_index'] = selected_index
     load_data_variables['selected_data'] = selected_data
+    #print(selected_data[0]['demoU'][0])
 
 
 def generate_test_demos():
@@ -216,6 +218,7 @@ def gen_batch_filenames():
             gifs = natsorted(os.listdir(folder))
 
             if (load_data_config['task_type'] == 'pushing'):
+                #Hey, problem here! removed some of the gifs
                 gifs = gifs[6:-6]
 
             gif_choices = np.random.choice(range(len(gifs)), shots,
@@ -383,6 +386,7 @@ def generate_validation_batch(it):
     stateA = [data[index[int(i / size2)]]['demoX'][
                   gif_index[int(i / size2)][i % size2]] \
               for i in range(size1 * size2) if (i % 2 == 0)]
+    # meta_batch_size * frames_in_gif * state_vec_len
     stateB = [data[index[int(i / size2)]]['demoX'][
                   gif_index[int(i / size2)][i % size2]] \
               for i in range(size1 * size2) if (i % 2 != 0)]
@@ -390,6 +394,7 @@ def generate_validation_batch(it):
     actionA = [data[index[int(i / size2)]]['demoU'][
                    gif_index[int(i / size2)][i % size2]] \
                for i in range(size1 * size2) if (i % 2 == 0)]
+    #meta_batch_size * frames_in_gif * action_vec_len
     actionB = [data[index[int(i / size2)]]['demoU'][
                    gif_index[int(i / size2)][i % size2]] \
                for i in range(size1 * size2) if (i % 2 != 0)]

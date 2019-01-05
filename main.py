@@ -19,9 +19,9 @@ config = {
     'kernel_size': 3,
     'fc_layer_size': 200,
     'two_head': False, # some bugs here
-    'iterations': 300,
+    'iterations': 30000,
     'val_interval': 100,
-    'print_interval': 20,
+    'print_interval': 100,
     'maml_tasks_per_batch': 4,
     'decay': 0.9,
     'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
@@ -111,10 +111,13 @@ if __name__ == '__main__':
                 result = sess.run(
                     [mil_variables['train_op'],
                      mil_variables['train_lossA'],
-                     mil_variables['train_lossB']],
+                     mil_variables['train_lossB'],
+                     mil_variables['train_outputBs'],
+                     mil_variables['actionB']],
                     feed_dict=feed_dict)
                 prelosses.append(result[1])
                 postlosses.append(result[2])
+
 
             if itr % config['print_interval'] == 0 and itr != 0:
                 preloss = np.mean(prelosses)
@@ -125,6 +128,19 @@ if __name__ == '__main__':
                 print('Train Iteration %d: \n'
                       'preloss is %.2f, postloss is %.2f' % (
                           itr, preloss, postloss))
+
+                exp_act = result[4]
+                our_act = result[3]
+                logfile = open('log_2.txt', 'a')
+                logfile.write('---------------------------\n')
+                logfile.write(str(itr)+'\n')
+                logfile.write(str(result[2])+'\n')
+                logfile.write('example loss: '+str(np.linalg.norm(exp_act[0] - our_act[0], 'fro'))+'\n')
+                logfile.write('actions example\n')
+                for item in range(50):
+                    logfile.write(str(exp_act[0][item]) + ' ' + str(our_act[0][item])+'\n')
+
+                logfile.close()
                 with graph.as_default():
                     saver.save(sess, log_dir + ('/model_%d' % itr))
 
@@ -142,10 +158,28 @@ if __name__ == '__main__':
                 with graph.as_default():
                     result = sess.run(
                         [mil_variables['val_lossA'],
-                         mil_variables['val_lossB']],
+                         mil_variables['val_lossB'],
+                         mil_variables['train_outputBs'],
+                         mil_variables['actionB']
+                         ],
                         feed_dict=feed_dict)
                     preloss = np.mean(result[0])
                     postloss = np.mean(result[1])
+
+                    exp_val_act = result[3]
+                    our_val_act = result[2]
+
+                    vlogfile = open('val_log.txt', 'a')
+                    vlogfile.write('---------------------------\n')
+                    vlogfile.write(str(itr) + '\n')
+                    vlogfile.write(str(result[1]) + '\n')
+                    vlogfile.write('example loss: ' + str(np.linalg.norm(exp_val_act[0] - our_val_act[0], 'fro')) + '\n')
+                    vlogfile.write('actions example\n')
+                    for item in range(50):
+                        vlogfile.write(str(exp_val_act[0][item]) + ' ' + str(our_val_act[0][item]) + '\n')
+
+                    vlogfile.close()
+
                     print('Val Iteration %d: \n'
                           'preloss is %.2f, postloss is %.2f' % (
                               itr, preloss, postloss))
