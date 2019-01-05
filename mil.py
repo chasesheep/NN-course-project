@@ -107,7 +107,7 @@ def construct_network(training=True, is_testing=False):
 
     if is_testing:
         # imgB = tf.reshape(mil_variables['img_B'], [1, 64, 80, 3])
-        imgB = mil_variables['img_B']
+        imgB = mil_variables['obs']
     else:
         imgB = tf.map_fn(read_gif, mil_variables['img_namesB'],
                          dtype=tf.float32)
