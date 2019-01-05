@@ -165,6 +165,7 @@ def construct_network(training=True, is_testing=False):
             return [outputA, outputB, lossA, lossB]
 
         out_dtype = [tf.float32, tf.float32, tf.float32, tf.float32]
+        maml(stateA[0], stateB[0], imgA[0], imgB[0], actionA[0], actionB[0])
         result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, \
                                         actionA, actionB), dtype=out_dtype)
         # Use map_fn for parallel computation
