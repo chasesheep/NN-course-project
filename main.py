@@ -131,7 +131,7 @@ if __name__ == '__main__':
 
                 exp_act = result[4]
                 our_act = result[3]
-                logfile = open('log_2.txt', 'a')
+                logfile = open('log.txt', 'a')
                 logfile.write('---------------------------\n')
                 logfile.write(str(itr)+'\n')
                 logfile.write(str(result[2])+'\n')
