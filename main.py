@@ -5,6 +5,8 @@ from mil import *
 import os
 import tensorflow as tf
 import numpy as np
+from eval_reaching import evaluate_vision_reach
+from eval_push import evaluate_push
 #import gym
 
 # import matplotlib.pyplot as plt
@@ -160,7 +162,11 @@ if __name__ == '__main__':
         plt.show()'''
     elif config['task_state'] == 'testing':
         print('Testing')
-        env = gym.make('ReacherMILTest-v1')
-        evaluate_vision_reach(env, graph, mil_variables, sess,
-                              load_data_variables, config['is_record_gif'],
-                              log_dir)
+        if config['task_type'] == 'reaching':
+            env = gym.make('ReacherMILTest-v1')
+            evaluate_vision_reach(env, graph, mil_variables, sess,
+                                  load_data_variables, config['is_record_gif'],
+                                  log_dir)
+        elif config['task_type'] == 'pushing':
+            evaluate_push(sess, graph, mil_variables, log_dir, 'sim_push_test/',
+                          save_video=True)
