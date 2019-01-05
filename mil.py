@@ -37,9 +37,10 @@ mil_variables = {
     'imgB': None,
     'actionA': None,
     'actionB': None,
-    'weights': None
+    'weights': None,
+    'outputA': None,
+    'outputB': None
 }
-
 
 def init_network_config(config):
     mil_config['K-shots'] = config['K-shots']
@@ -71,9 +72,13 @@ def init_network(graph, training, is_testing=False):
         if training:
             mil_variables['train_lossA'] = lossA
             mil_variables['train_lossB'] = lossB
+            mil_variables['train_outputAs'] = outputAs
+            mil_variables['train_outputBs'] = outputBs
             train_op = tf.train.AdamOptimizer(lr).minimize(lossB)
             mil_variables['train_op'] = train_op
         elif not is_testing:
+            mil_variables['val_outputAs'] = outputAs
+            mil_variables['val_outputBs'] = outputBs
             mil_variables['val_lossA'] = lossA
             mil_variables['val_lossB'] = lossB
         else:
@@ -160,6 +165,7 @@ def construct_network(training=True, is_testing=False):
             return [outputA, outputB, lossA, lossB]
 
         out_dtype = [tf.float32, tf.float32, tf.float32, tf.float32]
+        maml((stateA[0], stateB[0], imgA[0], imgB[0], actionA[0], actionB[0]))
         result = tf.map_fn(maml, elems=(stateA, stateB, imgA, imgB, \
                                         actionA, actionB), dtype=out_dtype)
         # Use map_fn for parallel computation
