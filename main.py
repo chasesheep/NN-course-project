@@ -1,13 +1,12 @@
 from load_data import *
 from mil import *
-#from eval_reaching import evaluate_vision_reach
 
 import os
 import tensorflow as tf
 import numpy as np
 from eval_reaching import evaluate_vision_reach
 from eval_push import evaluate_push
-#import gym
+import gym
 
 # import matplotlib.pyplot as plt
 
@@ -15,8 +14,8 @@ config = {
     'learning_rate': 0.001,
     'meta_learning_rate': 0.001,
     'K-shots': 1,
-    'train_samples': 750,
-    'validate_samples': 150,
+    'train_samples': 693,
+    'validate_samples': 76,
     'split_channels': 30,
     'kernel_size': 3,
     'fc_layer_size': 200,
@@ -24,18 +23,18 @@ config = {
     'iterations': 30000,
     'val_interval': 1000,
     'print_interval': 200,
-    'maml_tasks_per_batch': 25,
+    'maml_tasks_per_batch': 50,
     'decay': 0.9,
     'strides': [[1, 2, 2, 1], [1, 2, 2, 1], [1, 2, 2, 1]],
     'fc_bt': True,
-    'clip_min': -20.0,
-    'clip_max': 20.0,
+    'clip_min': -30.0,
+    'clip_max': 30.0,
 
     'checkpoint_num': 10,
     'log_dir': 'logs',
     'is_record_gif': True,
     'task_type': 'reaching',
-    'task_state': 'training',
+    'task_state': 'testing',
 }
 
 constants = {
